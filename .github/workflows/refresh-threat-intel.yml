@@ -1,0 +1,79 @@
+name: Refresh public threat intelligence
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/refresh-threat-intel.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-threat-intel
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download and validate CISA Known Exploited Vulnerabilities catalog
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+          request = urllib.request.Request(
+              url,
+              headers={"User-Agent": "SENTINEL-public-threat-intel-dashboard/1.0"}
+          )
+          with urllib.request.urlopen(request, timeout=40) as response:
+              raw = json.load(response)
+
+          vulnerabilities = raw.get("vulnerabilities")
+          if not isinstance(vulnerabilities, list) or not vulnerabilities:
+              raise SystemExit("Feed validation failed: no vulnerabilities array returned.")
+          if not all(isinstance(item, dict) and item.get("cveID") for item in vulnerabilities):
+              raise SystemExit("Feed validation failed: malformed vulnerability entries.")
+
+          output = {
+              "source": "CISA Known Exploited Vulnerabilities Catalog",
+              "sourceUrl": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+              "feedUrl": url,
+              "fetchedAt": datetime.now(timezone.utc).isoformat(),
+              "dateReleased": raw.get("dateReleased"),
+              "catalogVersion": raw.get("catalogVersion"),
+              "count": len(vulnerabilities),
+              "vulnerabilities": sorted(
+                  vulnerabilities,
+                  key=lambda item: item.get("dateAdded", ""),
+                  reverse=True
+              )[:250],
+              "status": "success"
+          }
+          path = Path("data/kev.json")
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+          print(f"Validated {len(vulnerabilities)} CISA KEV records; saved newest 250.")
+          PY
+
+      - name: Commit refreshed feed data when changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/kev.json
+          if git diff --cached --quiet; then
+            echo "Threat feed data is unchanged."
+          else
+            git commit -m "Refresh CISA KEV threat intelligence data"
+            git push
+          fi
