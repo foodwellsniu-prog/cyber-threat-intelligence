@@ -26,20 +26,20 @@
     <button data-view="feed"><span class="nav-ico">≋</span> Threat feed</button>
     <button data-view="countries"><span class="nav-ico">▤</span> Countries</button>
   </nav></div>
-  <div class="side-bottom"><div class="nav-label">SYSTEM STATUS</div><div class="status-card"><div class="status-top"><span class="dot"></span> Interface operational</div><p>Visualization is ready. A verified live threat data provider has not been connected yet.</p></div></div>
+  <div class="side-bottom"><div class="nav-label">SYSTEM STATUS</div><div class="status-card"><div class="status-top"><span class="dot"></span> Interface operational</div><p>Public CISA vulnerability catalog is connected. Map routes and country metrics are still demo samples.</p></div></div>
 </aside>
 <main class="main">
-  <header class="topbar"><div><div class="eyebrow">Security operations center</div><h1 class="page-title">Global Threat Overview</h1><div class="subtitle">A clearer view of the global cyber threat landscape.</div></div><div class="top-actions"><div class="clock" id="clock">--:--:-- UTC</div><button class="btn" id="refreshBtn">↻ &nbsp; Refresh view</button></div></header>
-  <div class="notice"><span>⚠</span><div><strong>DEMO MODE</strong> — Events and metrics on this page are illustrative samples, not verified live attacks.</div><span class="tag">SAMPLE DATA</span></div>
+  <header class="topbar"><div><div class="eyebrow">Security operations center</div><h1 class="page-title">Global Threat Overview</h1><div class="subtitle">A clearer view of the global cyber threat landscape.</div></div><div class="top-actions"><div class="clock" id="clock">--:--:-- UTC</div><button class="btn" id="refreshBtn">↻ &nbsp; Refresh threat feed</button></div></header>
+  <div class="notice"><span>⚠</span><div><strong>LIVE PUBLIC INTEL + DEMO MAP</strong> — The vulnerability list comes from CISA’s Known Exploited Vulnerabilities catalog. Map routes, country counts, and category chart remain illustrative samples, not live attack telemetry.</div><span class="tag">MIXED DATA</span></div>
   <section class="metrics">
-    <article class="metric"><div class="metric-head"><span>Events displayed</span><span class="metric-icon">⌁</span></div><div class="metric-value" id="eventCount">1,284</div><div class="metric-foot">Illustrative sample set</div></article>
-    <article class="metric"><div class="metric-head"><span>High severity</span><span class="metric-icon" style="background:#351b28;color:var(--red)">▲</span></div><div class="metric-value" style="color:var(--red)">18.6%</div><div class="metric-foot">Sample classification only</div></article>
-    <article class="metric"><div class="metric-head"><span>Countries represented</span><span class="metric-icon" style="background:#15253b;color:var(--cyan)">◎</span></div><div class="metric-value">27</div><div class="metric-foot">In the example dataset</div></article>
-    <article class="metric"><div class="metric-head"><span>Data source status</span><span class="metric-icon" style="background:#332a19;color:var(--amber)">⌁</span></div><div class="metric-value" style="font-size:22px;color:var(--amber)">Not linked</div><div class="metric-foot">Live provider required</div></article>
+    <article class="metric"><div class="metric-head"><span>KEV catalog records</span><span class="metric-icon">⌁</span></div><div class="metric-value" id="eventCount">—</div><div class="metric-foot">From the public CISA catalog</div></article>
+    <article class="metric"><div class="metric-head"><span>Added in last 30 days</span><span class="metric-icon" style="background:#351b28;color:var(--red)">▲</span></div><div class="metric-value" id="recentCount" style="color:var(--red)">—</div><div class="metric-foot">CISA catalog additions, not attack count</div></article>
+    <article class="metric"><div class="metric-head"><span>Catalog release date</span><span class="metric-icon" style="background:#15253b;color:var(--cyan)">◎</span></div><div class="metric-value" id="catalogDate" style="font-size:22px">—</div><div class="metric-foot">Date published by CISA</div></article>
+    <article class="metric"><div class="metric-head"><span>Data source status</span><span class="metric-icon" style="background:#332a19;color:var(--amber)">⌁</span></div><div class="metric-value" style="font-size:22px;color:var(--amber)">CISA KEV</div><div class="metric-foot">Public feed · refreshes every 6 hours</div></article>
   </section>
   <section class="grid-main">
     <article class="panel" id="mapPanel"><div class="panel-head"><div><div class="panel-title">Global activity map</div><div class="panel-desc">Example source and destination locations · not attribution</div></div><span class="pill">DEMO VISUALIZATION</span></div><div class="map-wrap"><div id="map" style="height:100%;width:100%"></div><div class="map-note">ILLUSTRATIVE ROUTES</div><div class="map-legend"><span><i class="legend-dot" style="background:#ff657a"></i>Source sample</span><span><i class="legend-dot" style="background:#58d8ff"></i>Destination sample</span><span><i class="legend-dot" style="background:#ffca70"></i>Example route</span></div></div></article>
-    <article class="panel" id="feedPanel"><div class="panel-head"><div><div class="panel-title">Recent threat activity</div><div class="panel-desc">Synthetic events for interface preview</div></div><span class="pill">SIMULATED</span></div><div class="feed" id="feed"></div><button class="btn" id="showAll" style="width:100%;margin-top:8px">View all sample events →</button></article>
+    <article class="panel" id="feedPanel"><div class="panel-head"><div><div class="panel-title">Known exploited vulnerabilities</div><div class="panel-desc" id="feedDescription">CISA catalog entries · not a live attack stream</div></div><span class="pill">PUBLIC FEED</span></div><div class="feed" id="feed"></div><button class="btn" id="showAll" style="width:100%;margin-top:8px">View all sample events →</button></article>
   </section>
   <section class="lower-grid">
     <article class="panel" id="countryPanel"><div class="panel-head"><div><div class="panel-title">Activity by reported source</div><div class="panel-desc">Sample counts — not confirmed attacker nationality</div></div><div class="table-tools"><input class="search" id="countrySearch" placeholder="Search country…" aria-label="Search country"></div></div><div class="table-scroll"><table><thead><tr><th>Location</th><th>Sample events</th><th>Risk label</th></tr></thead><tbody id="countryRows"></tbody></table></div></article>
@@ -71,10 +71,54 @@ const countries=[
 ];
 const kinds=[["Credential abuse patterns",34],["Network scanning",27],["Malware indicators",19],["Traffic anomalies",12],["Other samples",8]];
 const feedEl=document.getElementById("feed");
-function renderFeed(filter=""){const list=events.filter(e=>(e.type+" "+e.src+" "+e.dst+" "+e.sev).toLowerCase().includes(filter.toLowerCase()));feedEl.innerHTML=list.length?list.map(e=>'<div class="feed-row"><span class="sev" style="background:'+e.color+'"></span><div><div class="feed-title">'+e.type+'</div><div class="feed-meta">'+e.src+' → '+e.dst+'</div><div class="feed-meta">Severity: '+e.sev+' · Sample record</div></div><div class="feed-time">'+e.time+'</div></div>').join(""):'<div class="empty">No matching sample events.</div>'}
+let kevData=null;
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function renderFeed(filter="",showAll=false){
+ const all=Array.isArray(kevData?.vulnerabilities)?kevData.vulnerabilities:[];
+ const needle=filter.toLowerCase();
+ const filtered=all.filter(v=>[v.cveID,v.vendorProject,v.product,v.vulnerabilityName,v.shortDescription].join(" ").toLowerCase().includes(needle));
+ const list=showAll||needle?filtered:filtered.slice(0,8);
+ if(!list.length){
+  feedEl.innerHTML='<div class="empty">'+(kevData?.status==="success"?'No catalog entries match your search.':'Threat feed is waiting for its first successful refresh. Open Actions → Refresh public threat intelligence, or try again shortly.')+'</div>';
+  return;
+ }
+ feedEl.innerHTML=list.map(v=>{
+  const cve=escapeHtml(v.cveID||"CVE record");
+  const title=escapeHtml(v.vulnerabilityName||v.shortDescription||"Known exploited vulnerability");
+  const vendor=escapeHtml(v.vendorProject||"Vendor not specified");
+  const product=escapeHtml(v.product||"Product not specified");
+  const date=escapeHtml(v.dateAdded||"Date not provided");
+  const action=escapeHtml(v.requiredAction||"Review the vendor advisory and apply appropriate mitigations.");
+  const ransomware=v.knownRansomwareCampaignUse==="Known"?"Known ransomware use noted by CISA":v.knownRansomwareCampaignUse==="Unknown"?"Ransomware use unknown":"Ransomware use not marked known";
+  return '<div class="feed-row"><span class="sev" style="background:#ff657a"></span><div><div class="feed-title"><a href="https://nvd.nist.gov/vuln/detail/'+encodeURIComponent(v.cveID||"")+'" target="_blank" rel="noopener noreferrer" style="color:#e8f0fb;text-decoration:none">'+cve+'</a> · '+title+'</div><div class="feed-meta">'+vendor+' / '+product+'</div><div class="feed-meta">Added: '+date+' · '+escapeHtml(ransomware)+'</div><div class="feed-meta">'+action+'</div></div><div class="feed-time">CISA KEV</div></div>';
+ }).join("");
+}
+async function loadKev(showToast=false){
+ const status=document.getElementById("toast");
+ try{
+  const response=await fetch("data/kev.json?refresh="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw new Error("HTTP "+response.status);
+  const data=await response.json();
+  if(!Array.isArray(data.vulnerabilities)||data.status!=="success")throw new Error("Feed has not been populated yet");
+  kevData=data;
+  document.getElementById("eventCount").textContent=Number(data.count||data.vulnerabilities.length).toLocaleString();
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+  const recent=data.vulnerabilities.filter(v=>v.dateAdded&&new Date(v.dateAdded+"T00:00:00Z")>=cutoff).length;
+  document.getElementById("recentCount").textContent=recent.toLocaleString();
+  document.getElementById("catalogDate").textContent=data.dateReleased||"Available";
+  document.getElementById("feedDescription").textContent="CISA KEV catalog · fetched "+(data.fetchedAt?new Date(data.fetchedAt).toLocaleString():"time unavailable")+" · not a live attack stream";
+  renderFeed();
+  if(showToast){status.textContent="Public CISA threat-intelligence feed refreshed.";status.classList.add("show");setTimeout(()=>status.classList.remove("show"),2800);}
+  return true;
+ }catch(error){
+  kevData=null;renderFeed();
+  if(showToast){status.textContent="Could not refresh feed yet. Check Actions and try again.";status.classList.add("show");setTimeout(()=>status.classList.remove("show"),3200);}
+  return false;
+ }
+}
 function renderCountries(filter=""){const list=countries.filter(c=>(c.name+" "+c.code+" "+c.risk).toLowerCase().includes(filter.toLowerCase()));document.getElementById("countryRows").innerHTML=list.map(c=>'<tr><td><div class="country"><span class="flag">'+c.flag+'</span>'+c.name+'</div></td><td>'+c.count.toLocaleString()+'</td><td><span class="risk '+(c.risk==="High"?"high":c.risk==="Medium"?"med":"low")+'">'+c.risk+'</span></td></tr>').join("")||'<tr><td colspan="3">No matches</td></tr>'}
 document.getElementById("bars").innerHTML=kinds.map(k=>'<div class="bar-row"><div class="bar-label"><span>'+k[0]+'</span><span>'+k[1]+'%</span></div><div class="bar-track"><div class="bar-fill" style="width:'+k[1]+'%"></div></div></div>').join("");
-renderFeed();renderCountries();
+renderFeed();renderCountries();loadKev();
 document.getElementById("countrySearch").addEventListener("input",e=>renderCountries(e.target.value));
 function updateClock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString("en-GB",{timeZone:"UTC",hour12:false})+" UTC"}updateClock();setInterval(updateClock,1000);
 let map=null;
@@ -90,8 +134,8 @@ if(window.L){
  });
  setTimeout(()=>map.invalidateSize(),250);
 }else{document.getElementById("map").innerHTML='<div class="empty" style="padding-top:90px">Map library could not load. Check your internet connection and refresh.</div>'}
-document.getElementById("refreshBtn").addEventListener("click",()=>{if(map){map.invalidateSize()}updateClock();const t=document.getElementById("toast");t.textContent="View refreshed. Sample data remains unchanged.";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)});
-document.getElementById("showAll").addEventListener("click",()=>{document.getElementById("feedPanel").scrollIntoView({behavior:"smooth",block:"center"});renderFeed();const t=document.getElementById("toast");t.textContent="Showing all illustrative sample events.";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)});
+document.getElementById("refreshBtn").addEventListener("click",async()=>{if(map){map.invalidateSize()}updateClock();await loadKev(true)});
+document.getElementById("showAll").addEventListener("click",()=>{document.getElementById("feedPanel").scrollIntoView({behavior:"smooth",block:"center"});renderFeed("",true);const t=document.getElementById("toast");t.textContent="Showing all available CISA KEV catalog records."t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)});
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".nav button").forEach(n=>n.classList.remove("active"));b.classList.add("active");const target={overview:".topbar",map:"#mapPanel",feed:"#feedPanel",countries:"#countryPanel"}[b.dataset.view];document.querySelector(target).scrollIntoView({behavior:"smooth",block:"start"});if(map)setTimeout(()=>map.invalidateSize(),350)}));
 </script>
 </body>
